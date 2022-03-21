@@ -1,4 +1,4 @@
-// color palette: https://www.canva.com/colors/color-palettes/room-for-comfort/
+
 (function () {
 
     const canvas = document.querySelector('canvas');
@@ -278,17 +278,14 @@
     function drawGame(game){
         // interfaces with the game object to draw based on the data it recieves. 
         // this function maps the information contained in the game 
-        // object to the functions that draw purely based on inputs
-     
+        // object to the functions that draw purely based on inputs   
         drawBoard(
             game.board, 
             game.margin, 
             game.grid, 
             game.gap, 
             game.cornerRadius, 
-            game.highlightedSquare,
-            game.playerX,
-            game.playerO
+            game.highlightedSquare
         );
         drawTurn(game.playerTurn, game.margin);
     }
@@ -359,7 +356,6 @@
         ctx.textBaseline = 'top';
         ctx.fillText(`Player Turn: ${player}`, margin, 0);
     }
-
 
     window.onload = init;
 })();
