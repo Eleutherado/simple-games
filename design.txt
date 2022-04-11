@@ -1,0 +1,21 @@
+See notion Workshop/Projects - search tic tac toe
+
+
+Code Design: 
+This loosely follows an mvc architecture.
+* Note this game does not use a game loop since it is purely turn-driven. 
+- Global vars: canvas, ctx, colors, game state, game object
+- Init function (sets game dimensions, initial turn, adds event listener. )
+
+- Model functions: 
+  - computation helpers: return game-relevant info from given params (makeBoard, getGridCoords, isValidPlay etc.)
+  - Actions API - produce event-driven changes. Either visual changes to interface or changes to actual game state. 
+    - TODO for better state mgmt: Mutating functions produce the same effect given same input?
+
+- Controller routes UI actions to model functions to produce visual or game state changes.
+
+- Drawing Functions (create game UI)
+
+
+Assumptions: 
+Board will always be square. Only 2 players, X & O. 
