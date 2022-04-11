@@ -8,7 +8,8 @@
         pewter: "#b9b7bd",
         "X": "#219ebc",
         "O": "#e07a5f",
-        tealGreen: "#0d877a"
+        tealGreen: "#0d877a",
+        ghostWhite: "#FFFFFF"
     }
 
     const GAMEPLAY_STATES = {
@@ -31,13 +32,15 @@
         playerO: "O",
         playerTurn: null,
         gameOver: false, 
-        outcome: null, // "tie" or "victory"
+        outcome: null, // will be set to one of the GAMEPLAY_STATES.
+        winner: null, // will be set to PlayerX or PlayerO if there is a winner. 
         //view data
         mouseX: 0, 
         mouseY: 0, 
         margin: null,
         grid: null, 
         gap: null,
+        size: null,
         cornerRadius: null,
         highlightedSquare: {row: null, col: null} 
     }
@@ -53,6 +56,7 @@
         canvas.height = canvas.width = SIZE;
         canvas.style.width = canvas.style.height = SIZE;
 
+        game.size = SIZE;
         game.board = makeBoard(BOARD_SIZE); 
         game.margin = SIZE/20;
         game.grid = (SIZE - game.margin * 2) / game.board.length;
@@ -60,6 +64,7 @@
         game.cornerRadius = 10;
 
         game.playerTurn = game.playerX
+        game.outcome = GAMEPLAY_STATES.playing
 
         drawGame(game);
 
@@ -100,29 +105,121 @@
         }
     }
 
-    function isValidPlay(row, col) {
-        //TODO (will need more params)
+    function isValidPlay(row, col, board, outcome) {
         // determine if this is a legal move
-        // not game over, that square is free
-        return true
+        if  (outcome != GAMEPLAY_STATES.playing) {
+            console.log("invalid play - game is over")
+            return false
+        } else {
+            let squareIsFree = (board[row][col] === 0)
+            if (!squareIsFree) {
+                console.log(`invalid play - square [${row}, ${col}] is not empty`)
+            }
+            return squareIsFree
+        }
     }
 
-    function checkGameEnd(board) {
-        // TODO
-        // -- Victory
-        // A victory is when player gets 3 of their tokens in a row 
-        // (vertical, horizontal or diagonal). 
-        // -- Tie
-        // A tie is when the grid has no more empty squares and no tokens form 3 in a row. 
-        // return gameplay State (on, tie, victory)
+    function checkHorizontalWin(row, board, curPlayer){
+        let isWin = board[row].every((square) => square === curPlayer);
+        console.log("horizontal win - ", isWin);
+        return isWin
+    }
+    
+    function checkVerticalWin(col, board, curPlayer){
+        isWin = true
+        for (let row in board){
+            if (board[row][col] != curPlayer)
+            isWin = false; 
+        }
+        console.log("verticalWin - ", isWin);
+        return isWin
+    }
 
-        return GAMEPLAY_STATES.playing;
+    function checkDiagonal1Win(board, curPlayer) {
+        isWin = true
+        for (let row in board){
+            if (board[row][row] != curPlayer) { 
+                isWin = false
+            }
+        }
+        console.log("Diag 1 Win - ", isWin);
+        return isWin
+
+    }
+
+    function checkDiagonal2Win(board, curPlayer) {
+        //diag 2 on square board
+        isWin = true
+        for (let row in board){
+            if (board[row][board.length - 1 - row] != curPlayer){ 
+                isWin = false
+            }
+        }
+        console.log("Diag 2 Win - ", isWin);
+        return isWin;
+    }
+
+    function checkBoardIsFull(board){
+        isFull = true
+        for (let row in board){ 
+            for (let col in board[0]){
+                if (board[row][col] === 0){
+                    isFull = false;
+                }
+            }
+        }
+        return isFull
+    }
+
+
+    function checkGameEnd(board, curPlayer) {
+        // Returns { outcome, winner} where outcome is type of GAMEPLAY_STATES, and winner is playerX, playerO or null.
+        const winResult = {
+            outcome: GAMEPLAY_STATES.victory,
+            winner: curPlayer
+        };
+
+        const tieResult = {
+            outcome: GAMEPLAY_STATES.tie, 
+            winner: null
+        }
+
+        const playOn = {
+            outcome: GAMEPLAY_STATES.playing, 
+            winner: null
+        }
+        // Victory: when player gets 3 of their tokens in a row (vertical, horizontal or diagonal).
+        for (let row = 0; row < board.length; row++){
+            if (checkHorizontalWin(row, board, curPlayer)) {
+                return winResult
+            }
+        }
+        for (let col = 0; col < board[0].length; col++){
+            if(checkVerticalWin(col, board, curPlayer)){
+                return winResult
+            }
+        }
+
+        if(checkDiagonal1Win(board, curPlayer)){
+            return winResult
+        }
+
+        if(checkDiagonal2Win(board, curPlayer)){
+            return winResult
+        }
+        // Tie: when the grid has no more empty squares and no tokens form 3 in a row. 
+        if(checkBoardIsFull(board)){
+            console.log("we have a tie")
+            return tieResult
+        }
+
+        return playOn;
     }
 
     /* Actions API, 
     these are called by events to produce changes in the game state.
     These are either "interactive actions" - changes to data governing visual representation of the game
-    These are either "game actions" - actions that change the state of the game itself
+    Or "game actions" - actions that change the state of the game itself
     DESIRABLE - refactor mutating functions so that same inputs produce same effect.
     */ 
 
@@ -151,17 +248,22 @@
 
     }
 
-    function endGame(outcome) {
+    function endGame(outcome, winner) {
         let { playerTurn, playerX, playerO } = game;
-        if (playerTurn != playerX || playerTurn != playerO) {
+        if (playerTurn != winner){
+            console.log("error endGame - winner is not current Player")
+        }
+        if (playerTurn != playerX && playerTurn != playerO) {
             console.log("error endGame - turn doesn't have a valid player")
             return;
         }
-        if(outcome != GAMEPLAY_STATES.tie || GAMEPLAY_STATES.victory){
+        if(outcome != GAMEPLAY_STATES.tie && outcome != GAMEPLAY_STATES.victory){
             console.log(`error in endGame - given game outcome '${outcome}' is invalid`);
             return;
         }
         game.outcome = outcome;
+        game.winner = winner;
+
         return game.outcome;
     }
 
@@ -177,18 +279,18 @@
     function playSquare(row, col) {
         // If valid move, play square, then check for victory, then switch turns. 
         // return info so redraw can be called. 
-        if (!isValidPlay(row, col)){
+        if (!isValidPlay(row, col, game.board, game.outcome)){
             console.log(`invalid play at {${row}, ${col}}`);
             return null;
         }
 
         game.board[row][col] = game.playerTurn;
 
-        let outcome = checkGameEnd(game.board); 
+        let { outcome, winner } = checkGameEnd(game.board, game.playerTurn); // return {outcome, winner}. If tie, winner = null;
         if (outcome === GAMEPLAY_STATES.playing) {
             switchTurn();
         } else {
-            endGame(outcome);
+            endGame(outcome, winner);
         }
         console.log("square played! Board - ", game.board);
         return outcome;
@@ -285,9 +387,12 @@
             game.grid, 
             game.gap, 
             game.cornerRadius, 
-            game.highlightedSquare
+            game.highlightedSquare,
         );
         drawTurn(game.playerTurn, game.margin);
+        if (game.outcome != GAMEPLAY_STATES.playing) {
+            drawOutcome(game.outcome, game.winner, game.size);
+        }
     }
 
 
@@ -355,6 +460,21 @@
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
         ctx.fillText(`Player Turn: ${player}`, margin, 0);
+    }
+
+    function drawOutcome(outcome, winner, gameSize){
+        ctx.fillStyle = COLORS.ghostWhite;
+        ctx.font = `${gameSize/8}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText("Game Over", gameSize/2, gameSize/3);
+
+        if (outcome == GAMEPLAY_STATES.tie) { 
+            ctx.fillText("Tie", gameSize/2, 2*gameSize/3);     
+        } else {
+            ctx.fillStyle = COLORS[winner];
+            ctx.fillText(`Winner is ${winner}`, gameSize/2, 2*gameSize/3)
+        }
     }
 
     window.onload = init;
