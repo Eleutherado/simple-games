@@ -7,13 +7,28 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="description" content="" />
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
 
 </head>
 
 <body>
-    <canvas id="game"></canvas>
+  <div class="min-h-screen container flex flex-col mx-auto px-4 py-2 items-center">
+
+    <div class="Roboto text-center text-slate-100 mt-5 mb-10">
+      <h1>Eleutherado's Games</h1>
+      <h2 class="text-7xl">Welcome!</h2>
+    </div>
+    <div class="grid grid-cols-2 gap">
+        <div class="text-center bg-emerald-500 p-10 m-5 rounded-lg hover:bg-slate-600">
+          <div>Snake</div>
+        </div>
+
+        <a href="tic-tac-toe.html" class="bg-emerald-500 p-10 m-5 rounded-lg hover:shadow-2xl hover:brightness-150" >
+          <div>Tic Tac Toe</div>
+        </a>
+    </div>
+
+  </div>
 
 </body>
-<script src="game.js"></script>
-
 </html>
