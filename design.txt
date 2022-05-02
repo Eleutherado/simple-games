@@ -3,7 +3,7 @@ See notion Workshop/Projects - search tic tac toe
 
 Code Design: 
 This loosely follows an mvc architecture.
-* Note this game does not use a game loop since it is purely turn-driven. 
+* Note this game does not use a game loop since it is purely turn-driven *
 - Global vars: canvas, ctx, colors, game state, game object
 - Init function (sets game dimensions, initial turn, adds event listener. )
 
@@ -19,3 +19,9 @@ This loosely follows an mvc architecture.
 
 Assumptions: 
 Board will always be square. Only 2 players, X & O. 
+
+
+Feature example: 
+The button changes color on hover
+mousemove event from init evt listener -> handler in controller if on hover { helper } sets btn to highlight { Actions API } & redraw { draw }.
+drawing fn is passed highlighted flag.

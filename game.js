@@ -42,7 +42,9 @@
         gap: null,
         size: null,
         cornerRadius: null,
-        highlightedSquare: {row: null, col: null} 
+        highlightedSquare: {row: null, col: null},
+        restartBtnDimensions: { x: null, y: null, width: null, height: null },
+        restartBtnHighlighted: false, 
     }
 
 
@@ -62,6 +64,11 @@
         game.grid = (SIZE - game.margin * 2) / game.board.length;
         game.gap = game.grid/10;
         game.cornerRadius = 10;
+
+        game.restartBtnDimensions.x = game.size/12, 
+        game.restartBtnDimensions.y = 9*game.size/12, 
+        game.restartBtnDimensions.width = 10*game.size/12
+        game.restartBtnDimensions.height = 2*game.size/12 ; 
 
         game.playerTurn = game.playerX
         game.outcome = GAMEPLAY_STATES.playing
@@ -229,6 +236,14 @@
         game.mouseY = mouseY;
     }
 
+    function setHighlightedRestart() {
+        game.restartBtnHighlighted = true;
+    }
+
+    function clearHighlightedRestart() {
+        game.restartBtnHighlighted = false;
+    }
+
     function setHighlightedSquare(row, col) {
         let { board } = game; // assumes board is well formed 
 
@@ -311,6 +326,17 @@
         mouseY = e.clientY - rect.top
         updateMouse(mouseX, mouseY);
 
+        if (game.outcome != GAMEPLAY_STATES.playing) {
+            if (checkForRestartHover()){
+                console.log('hovering over Restart!!')
+                setHighlightedRestart();
+                redraw(game);
+            } else {
+                clearHighlightedRestart();
+                redraw(game);
+            }
+        } 
+
         let square = checkForSquareHover(); // {row: int, col: int}
 
         if (square && game.board[square.row][square.col] === 0){
@@ -333,7 +359,17 @@
         } 
     }
 
+    function checkForRestartHover() {
+        let { restartBtnDimensions, mouseX, mouseY } = game;
 
+        return (
+            mouseX >= restartBtnDimensions.x 
+            && mouseX <= restartBtnDimensions.x + restartBtnDimensions.width
+            && mouseY >= restartBtnDimensions.y
+            && mouseY <= restartBtnDimensions.y + restartBtnDimensions.height
+        );
+    }
+        
     function checkForSquareHover() {
         // given a "game" object, 
         // if the mouse is hovering over a square, 
@@ -372,27 +408,38 @@
     ------------------------- */
 
     function redraw(game){
+        // interfaces with the game object to draw based on the data it recieves. 
+        // this function maps the information contained in the game 
+        // object to the functions that draw purely based on inputs   
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawGame(game);
+
+        if (game.outcome != GAMEPLAY_STATES.playing) {
+            ctx.globalAlpha = 0.3
+
+            drawGame(game);
+            
+            ctx.globalAlpha = 1;
+            drawOutcome(game.outcome, game.winner, game.size);
+            drawRestart(game.size, game.restartBtnDimensions, game.restartBtnHighlighted);
+
+        } else {
+            // normal draw 
+            drawGame(game);
+
+        }
     }
 
 
     function drawGame(game){
-        // interfaces with the game object to draw based on the data it recieves. 
-        // this function maps the information contained in the game 
-        // object to the functions that draw purely based on inputs   
-        drawBoard(
-            game.board, 
-            game.margin, 
-            game.grid, 
-            game.gap, 
-            game.cornerRadius, 
-            game.highlightedSquare,
-        );
-        drawTurn(game.playerTurn, game.margin);
-        if (game.outcome != GAMEPLAY_STATES.playing) {
-            drawOutcome(game.outcome, game.winner, game.size);
-        }
+            drawBoard(
+                game.board, 
+                game.margin, 
+                game.grid, 
+                game.gap, 
+                game.cornerRadius, 
+                game.highlightedSquare,
+            );
+            drawTurn(game.playerTurn, game.margin);
     }
 
 
@@ -464,7 +511,7 @@
 
     function drawOutcome(outcome, winner, gameSize){
         ctx.fillStyle = COLORS.ghostWhite;
-        ctx.font = `${gameSize/8}px monospace`;
+        ctx.font = `bold ${gameSize/8}px monospace`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText("Game Over", gameSize/2, gameSize/3);
@@ -475,6 +522,25 @@
             ctx.fillStyle = COLORS[winner];
             ctx.fillText(`Winner is ${winner}`, gameSize/2, 2*gameSize/3)
         }
+    }
+
+    function drawRestart(gameSize, btnDimensions, highlighted){
+
+        let color = COLORS.ghostWhite;
+        if (highlighted) {
+            color = COLORS.tealGreen
+        }
+        ctx.fillStyle = color;
+        ctx.font = `bold ${gameSize/14}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        
+        ctx.fillText("Click to Restart", gameSize/2, 5*gameSize/6);
+
+        ctx.lineWidth = gameSize/120;
+        ctx.strokeStyle = color;
+        ctx.strokeRect(btnDimensions.x, btnDimensions.y, btnDimensions.width, btnDimensions.height); 
     }
 
     window.onload = init;
