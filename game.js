@@ -75,10 +75,6 @@
 
         drawGame(game);
 
-        // interactions
-        canvas.addEventListener("mousemove", handleMouseMove);
-        canvas.addEventListener("mousedown", handleMouseClick);
-
     }
     /* ------------------------- 
     model functions 
@@ -282,6 +278,10 @@
         return game.outcome;
     }
 
+    function restartGame() {
+        init();
+    }
+
     function switchTurn() {
         const newPlayer = switchTurnTo[game.playerTurn];
         if (!newPlayer) {
@@ -350,13 +350,17 @@
 
     function handleMouseClick(e) {
         let square = checkForSquareHover(); // {row: int, col: int}
-        let outcome;
-        if (square) {
-            outcome = playSquare(square.row, square.col);
+        if (game.outcome != GAMEPLAY_STATES.playing && checkForRestartHover()) { 
+            restartGame();
+        } else {
+            let outcome;
+            if (square) {
+                outcome = playSquare(square.row, square.col);
+            }
+            if (outcome) {
+                redraw(game);
+            } 
         }
-        if (outcome) {
-            redraw(game);
-        } 
     }
 
     function checkForRestartHover() {
@@ -543,7 +547,12 @@
         ctx.strokeRect(btnDimensions.x, btnDimensions.y, btnDimensions.width, btnDimensions.height); 
     }
 
-    window.onload = init;
+    window.onload = () => {
+        init();
+        // interactions
+        canvas.addEventListener("mousemove", handleMouseMove);
+        canvas.addEventListener("mousedown", handleMouseClick);
+    }
 })();
 
 
