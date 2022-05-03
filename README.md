@@ -9,7 +9,8 @@ Showcase of some simple games I built with html canvas.
 I created this project because I recall really enjoying programming games and I wanted to learn how to do it using basic web technologies. I built snake and tic-tac-toe separately and then becan integrating them in this repo.
 
 ### Technologies used
-I chose just to use html canvas and plain javascript to start so as to not overburden the project with frameworks. 
+- Frontend: I chose just to use html canvas and plain javascript to start so as to not overburden the project with frameworks. 
+- Backdend: Node.js with express 
 
 ### Goals
 - [x] Build Snake 
