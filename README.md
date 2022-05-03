@@ -12,6 +12,9 @@ I created this project because I recall really enjoying programming games and I 
 I chose just to use html canvas and plain javascript to start so as to not overburden the project with frameworks. 
 
 ### Goals
-
-Longer term I want to serve these games in a single-page application (I'll probably use Vue) but since my main focus is building out a multi-player capability for tic-tac-toe, a SPA refactor will have to wait. 
+- [x] Build Snake 
+- [x] Build Tic Tac Toe
+- [x] Integrate into one site
+- [ ] Add multiplayer functionality to Tic-Tac-Toe using websockets. 
+- [ ] Refactor frontend into SPA, likely using Vue
 
