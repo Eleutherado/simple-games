@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <title>Tic Tac Toe</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="" />
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+
+</head>
+
+<body>
+    <div class="container py-2">
+        <p class="Roboto text-sm text-slate-100 hover:underline ml-10">
+          <a href="/"> << Back to home</a>
+        </p>
+        <div id="lobby" class="Roboto">
+          <h2 class="text-slate-100 ml-10">Waiting for other player...</h2>
+        </div>
+      <canvas id="game"></canvas>
+    </div>
+
+</body>
+<script src="/js/tic-tac-toe-multi.js"></script>
+<script>
+  let isPlaying = false;
+
+  const lobby = document.getElementById('lobby');
+  lobby.style.display = 'none';
+
+
+</script>
+
+</html>
