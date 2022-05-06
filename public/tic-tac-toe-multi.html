@@ -12,25 +12,30 @@
 </head>
 
 <body>
-    <div class="container py-2">
+    <div class="py-2 w-full">
         <p class="Roboto text-sm text-slate-100 hover:underline ml-10">
           <a href="/"> << Back to home</a>
         </p>
-        <div id="lobby" class="Roboto">
-          <h2 class="text-slate-100 ml-10">Waiting for other player...</h2>
+        <div class="Roboto text-center text-3xl mt-10">
+          <h2 id="connectingMsg" style="display: none" class="text-slate-100 ml-10">Connecting to server..</h2>
+          <h2 id="waitingMsg" style="display: none" class="text-slate-100 ml-10">Waiting for other player...</h2>
+          <h2 id="gameFullMsg" style="display: none" class="text-slate-100 ml-10">Game is full at the moment, return later</h2>
         </div>
-      <canvas id="game"></canvas>
+        <div class="Roboto text-center text-3xl mt-10">
+          <h3 id="tokenDisplay" style="display: none" class="text-slate-100 ml-10"></h2>
+        </div>
+        <div id="startBtnGrid" class="flex justify-center items-center">
+          <button id="startBtn" href="snake.html" class="col-start-3 col-end-4 text-center bg-emerald-500 py-10 px-20 m-5 rounded-lg hover:shadow-2xl hover:brightness-150" >
+          Start
+          </button>
+        </div>
+        
+      <canvas style="display: none" id="game"></canvas>
+
     </div>
-
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/tic-tac-toe-multi.js"></script>    
 </body>
-<script src="/js/tic-tac-toe-multi.js"></script>
-<script>
-  let isPlaying = false;
 
-  const lobby = document.getElementById('lobby');
-  lobby.style.display = 'none';
-
-
-</script>
 
 </html>

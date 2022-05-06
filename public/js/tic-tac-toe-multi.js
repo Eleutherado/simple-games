@@ -46,9 +46,11 @@
         restartBtnDimensions: { x: null, y: null, width: null, height: null },
         restartBtnHighlighted: false, 
     }
-
-
-
+    
+    let localState = {
+        game_id: null, 
+        token: null, 
+    }
 
 
     function init () {
@@ -76,6 +78,103 @@
         drawGame(game);
 
     }
+    /* set up socket.io */
+    let socket = io();
+    
+    let startBtn = document.getElementById('startBtn');
+    let connectingMsg = document.getElementById('connectingMsg');
+    let tokenDisplay = document.getElementById('tokenDisplay');
+
+
+    startBtn.addEventListener('click', () => {
+        socket.emit('startGame');
+        hideStartBtn();
+        displayConnectingMsg();
+    })
+
+
+    socket.on('startGame', ({ playersReady }) => {
+        // TODO - only display game if there are 2 players. 
+        console.log("game started!")
+        if (playersReady){
+            displayGame();
+        } else {
+            displayWaitingMsg();
+            hideConnectingMsg();
+        }
+    })
+
+    socket.on('gameFull', () => {
+        console.log("game is full");
+        displayGameFullMsg();
+    })
+
+    socket.on('youJoined', ({id, token}) => {
+        console.log(`joined, id: ${id}. Playing as ${token}`);
+
+        localState.game_id = id;
+        localState.token = token; 
+
+        displayToken(token);
+    })
+
+    socket.on('newMove', ({ game, numMoves}) => {
+        /* 
+        TODO
+        - validate number of moves
+        - render moves on board
+        */ 
+
+        console.log('newMove');
+        console.log(game);
+        console.log('numMoves', numMoves);
+
+    })
+
+    function SOCKET_sendMove(game) {
+        socket.emit('playMove', {
+            id: localState.game_id, 
+            token: localState.token,  
+            game
+        });
+    }
+
+    /* 
+    These functions control the dom of the page outside of canvas. 
+    */ 
+   const displayConnectingMsg = () => connectingMsg.style.display = 'inline'; 
+   const hideConnectingMsg = () => connectingMsg.style.display = 'none'; 
+
+   function hideStartBtn() {
+       document.getElementById("startBtnGrid").style.display = 'none';
+   }
+   function displayGameFullMsg() {
+       document.getElementById("gameFullMsg").style.display = 'inline';
+       hideConnectingMsg();
+       hideWaitingMsg();
+   }
+   
+   function hideWaitingMsg() {
+       document.getElementById("waitingMsg").style.display = 'none';
+   }
+
+   function displayWaitingMsg () {
+    document.getElementById("waitingMsg").style.display = 'inline';
+   }
+
+   function displayGame() {
+       canvas.style.display = 'block';
+       hideConnectingMsg();
+       hideWaitingMsg();
+   }
+
+   function displayToken(token) { 
+       tokenDisplay.innerText = `You are playing as '${token}'`
+       tokenDisplay.style.display = 'inline';
+    }
+
+
+
     /* ------------------------- 
     model functions 
     ------------------------- */ 
@@ -308,6 +407,8 @@
             endGame(outcome, winner);
         }
         console.log("square played! Board - ", game.board);
+        SOCKET_sendMove(game)
+        
         return outcome;
 
     }
