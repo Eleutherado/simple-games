@@ -261,7 +261,7 @@
 
     function endGame(outcome, winner) {
         let { playerTurn, playerX, playerO } = game;
-        if (playerTurn != winner){
+        if (winner != null && playerTurn != winner){
             console.log("error endGame - winner is not current Player")
         }
         if (playerTurn != playerX && playerTurn != playerO) {
@@ -274,7 +274,7 @@
         }
         game.outcome = outcome;
         game.winner = winner;
-
+        
         return game.outcome;
     }
 

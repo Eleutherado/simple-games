@@ -72,11 +72,14 @@ function leaveGame(socketId) {
 
   if (plyr1 === socketId){
     GAME_STATE.plyr1 = null;
+    return true;
 
   } else if (plyr2 === socketId){
     GAME_STATE.plyr2 = null;
-  }
+    return true;
 
+  }
+  return false; 
 }
 
 
@@ -115,7 +118,10 @@ io.on('connection', (socket) => {
     
   
   socket.on('disconnect', () => {
-    leaveGame(socket.id);
+
+    if (leaveGame(socket.id)) {
+      io.to('game').emit('leftGame', {id: socket.id })
+    }
 
     console.log('A user has disconnected');
     console.log(`The client count is ${io.engine.clientsCount}`);

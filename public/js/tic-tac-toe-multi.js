@@ -15,7 +15,8 @@
     const GAMEPLAY_STATES = {
         playing: "playing",
         tie: "tie",
-        victory: "victory"
+        victory: "victory", 
+        disconnected: "diconnected"
     }
 
     const switchTurnTo = {
@@ -84,6 +85,7 @@
     let startBtn = document.getElementById('startBtn');
     let connectingMsg = document.getElementById('connectingMsg');
     let tokenDisplay = document.getElementById('tokenDisplay');
+    let plyrDisconnectMsg = document.getElementById('playerDisconnectMsg');
 
 
     startBtn.addEventListener('click', () => {
@@ -94,14 +96,7 @@
 
 
     socket.on('startGame', ({ playersReady }) => {
-        // TODO - only display game if there are 2 players. 
-        console.log("game started!")
-        if (playersReady){
-            displayGame();
-        } else {
-            displayWaitingMsg();
-            hideConnectingMsg();
-        }
+        handleStartGame(playersReady);
     })
 
     socket.on('gameFull', () => {
@@ -116,6 +111,11 @@
         localState.token = token; 
 
         displayToken(token);
+    })
+
+    socket.on('leftGame', ({ id }) => {
+        handlePlayerDisconnect();
+        console.log("oponent left the game");
     })
 
     socket.on('newMove', ({ game, numMoves}) => {
@@ -143,8 +143,10 @@
     These functions control the dom of the page outside of canvas. 
     */ 
    const displayConnectingMsg = () => connectingMsg.style.display = 'inline'; 
-   const hideConnectingMsg = () => connectingMsg.style.display = 'none'; 
-
+   const hideConnectingMsg = () => connectingMsg.style.display = 'none';
+   const displayDiconnectMsg = () => plyrDisconnectMsg.style.display = 'inline'; 
+   const hideDisconnectMsg = () => plyrDisconnectMsg.style.display = 'none'; 
+   
    function hideStartBtn() {
        document.getElementById("startBtnGrid").style.display = 'none';
    }
@@ -360,14 +362,18 @@
 
     function endGame(outcome, winner) {
         let { playerTurn, playerX, playerO } = game;
-        if (playerTurn != winner){
+        if (winner != null && playerTurn != winner){
             console.log("error endGame - winner is not current Player")
         }
         if (playerTurn != playerX && playerTurn != playerO) {
             console.log("error endGame - turn doesn't have a valid player")
             return;
         }
-        if(outcome != GAMEPLAY_STATES.tie && outcome != GAMEPLAY_STATES.victory){
+        if(
+            outcome != GAMEPLAY_STATES.tie && 
+            outcome != GAMEPLAY_STATES.victory && 
+            outcome != GAMEPLAY_STATES.disconnected
+        ){
             console.log(`error in endGame - given game outcome '${outcome}' is invalid`);
             return;
         }
@@ -408,7 +414,7 @@
         }
         console.log("square played! Board - ", game.board);
         SOCKET_sendMove(game)
-        
+
         return outcome;
 
     }
@@ -419,9 +425,33 @@
     but writing is done through data interface functions
     ------------------------- */ 
 
+    /* socket controllers
+    In addition to the canvas, they also call functions that affect the DOM 
+    */
+
+    function handlePlayerDisconnect() {
+        displayDiconnectMsg();
+        endGame(GAMEPLAY_STATES.disconnected, null);
+        redraw(game);
+    }
+
+    function handleStartGame(playersReady) {
+
+        console.log("game started!")
+        if (playersReady){
+            displayGame();
+            restartGame();
+            hideDisconnectMsg();
+        } else {
+            displayWaitingMsg();
+            hideConnectingMsg();
+        }
+    }
+
+    /* Game Controllers 
+    */
+
     function handleMouseMove(e) {
-
-
         let rect = this.getBoundingClientRect(); // 'this' references canvas here
         mouseX = e.clientX - rect.left
         mouseY = e.clientY - rect.top
@@ -525,7 +555,9 @@
             
             ctx.globalAlpha = 1;
             drawOutcome(game.outcome, game.winner, game.size);
-            drawRestart(game.size, game.restartBtnDimensions, game.restartBtnHighlighted);
+            if (game.outcome != GAMEPLAY_STATES.disconnected) {
+                drawRestart(game.size, game.restartBtnDimensions, game.restartBtnHighlighted);
+            }
 
         } else {
             // normal draw 
@@ -622,7 +654,11 @@
         ctx.fillText("Game Over", gameSize/2, gameSize/3);
 
         if (outcome == GAMEPLAY_STATES.tie) { 
-            ctx.fillText("Tie", gameSize/2, 2*gameSize/3);     
+            ctx.fillText("Tie", gameSize/2, 2*gameSize/3);  
+            
+        } else if (outcome == GAMEPLAY_STATES.disconnected) {
+            ctx.fillText("Forfeit", gameSize/2, 2*gameSize/3); 
+
         } else {
             ctx.fillStyle = COLORS[winner];
             ctx.fillText(`Winner is ${winner}`, gameSize/2, 2*gameSize/3)
