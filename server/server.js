@@ -3,7 +3,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const { emit } = require('process');
-
+const { GAMEPLAY_STATES, switchTurnTo } = require('../public/const');
 
 const publicPath = path.join(__dirname, '/../public');
 const port = process.env.PORT || 3000;
@@ -12,6 +12,7 @@ let server = http.createServer(app);
 let io = new Server(server);
 
 
+const BOARD_SIZE = 3;
 
 let GAME_STATE = {
   // create user A & B, assign them. Track game sess here.
@@ -22,21 +23,48 @@ let GAME_STATE = {
   plyr2: null,
   p1Token: "X",
   p2Token: "O",
+  starter: null,
 
-  numMoves: 0, 
+  game: { 
+    numMoves: 0, 
+
+    board: null,
+    playerTurn: null,
+    outcome: null, // will be set to one of the GAMEPLAY_STATES.
+    winner: null,
+  }
 }
 
 
 
 
-/* Game Model API 
+/* -- Game Model API -- 
 Functions here read and modify data from the GAME_STATE. 
 */ 
 
-function newGame(p1, p2) {
+function selectStarter(restart) {
+  let token; 
+  if (restart) {
+    token = switchTurnTo[GAME_STATE.starter]
+
+  } else {
+    token = GAME_STATE.p1Token;
+  }
+  return token;
+}
+
+function newGame(p1, p2, restart=false) {
   GAME_STATE.plyr1 = p1,
   GAME_STATE.plyr2 = p2,
-  GAME_STATE.numMoves = 0
+  GAME_STATE.game.numMoves = 0; 
+
+  GAME_STATE.game.board = makeBoard(BOARD_SIZE);
+
+  token = selectStarter(restart);
+  GAME_STATE.game.playerTurn = token;
+  GAME_STATE.starter = token;
+  GAME_STATE.game.outcome = GAMEPLAY_STATES.playing;
+  GAME_STATE.game.winner = null;
 }
 
 function playersReady() {
@@ -82,6 +110,53 @@ function leaveGame(socketId) {
   return false; 
 }
 
+function verifyMoveId(id, token) {
+  return (
+    (id === GAME_STATE.plyr1 && token === GAME_STATE.p1Token) || 
+    (id === GAME_STATE.plyr2 && token === GAME_STATE.p2Token)
+  )
+}
+
+function updateServerGame(game) {
+
+  GAME_STATE.game.board = game.board;
+  GAME_STATE.game.playerTurn = switchTurn(GAME_STATE.game.playerTurn);
+  /* TODO verify game outcomes on server */
+  GAME_STATE.game.outcome = game.outcome;
+  GAME_STATE.game.winner = game.winner;
+  
+
+  GAME_STATE.game.numMoves += 1; // How to do on restart
+
+}
+
+function switchTurn(playerTurn) {
+  // note: Absorbed from FE
+  const newPlayer = switchTurnTo[playerTurn];
+  if (!newPlayer) {
+      console.log (`error switching turns - invalid player ${GAME_STATE.game.playerTurn}`);
+      return;
+  } 
+  return newPlayer;
+}
+
+function makeBoard(size) {
+  // note: Absorbed from FE
+  let board = [];
+  for (var row =  0; row < size; row++){
+      board[row] = [];
+      for (var col = 0; col < size; col++) {
+          board[row].unshift(0);
+      }
+  }
+  return board;
+}
+
+
+/* -- Socket Controller --
+  controls the socket events and routes the handling of them. 
+*/ 
+
 
 io.on('connection', (socket) => {
 
@@ -101,6 +176,9 @@ io.on('connection', (socket) => {
     }
 
     let ready = playersReady();
+    if (ready) {
+      newGame(GAME_STATE.plyr1, GAME_STATE.plyr2);
+    }
     console.log(`game ready: ${ready}`);
     io.to('game').emit('startGame', { playersReady: ready })
   })
@@ -110,9 +188,37 @@ io.on('connection', (socket) => {
     // make move on server board
     // broadcast to 'game' room. 
     console.log("move played");
-    console.log({id, token, game});
-    let { numMoves } = GAME_STATE;
-    io.to('game').emit('newMove', { game, numMoves });
+    // console.log({id, token, game});
+    let validId = verifyMoveId(id, token);
+    if (validId) {
+      console.log('valid move id');
+      updateServerGame(game)
+
+      let { numMoves } = GAME_STATE.game;
+      let serverGame = GAME_STATE.game;
+      io.to('game').emit('newMove', { serverGame, numMoves });
+    } else {
+      // TODO error handling? 
+      console.log('player ID and token invalid');
+    }
+
+  })
+
+  socket.on('restartGame', ({id, token, game}) => {
+    console.log("game restart");
+
+    
+    let validId = verifyMoveId(id, token);
+    if (validId) {
+      console.log('valid move id');
+      newGame(GAME_STATE.plyr1, GAME_STATE.plyr2, true);
+
+      let serverGame = GAME_STATE.game;
+      io.to('game').emit('restartGame', { serverGame });
+    } else {
+      // TODO error handling? 
+      console.log('player ID and token invalid');
+    }
   })
 
     

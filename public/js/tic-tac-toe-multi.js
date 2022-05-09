@@ -32,7 +32,7 @@
         playerX: "X",
         playerO: "O",
         playerTurn: null,
-        gameOver: false, 
+        numMoves: 0,
         outcome: null, // will be set to one of the GAMEPLAY_STATES.
         winner: null, // will be set to PlayerX or PlayerO if there is a winner. 
         //view data
@@ -55,14 +55,18 @@
 
 
     function init () {
-        const SIZE = 600;
         const BOARD_SIZE = 3;
+        game.playerTurn = game.playerX;
+        game.numMoves = 0;
+        game.outcome = GAMEPLAY_STATES.playing;
+        game.board = makeBoard(BOARD_SIZE); 
+        game.winner = null;
 
+        const SIZE = 600;
         canvas.height = canvas.width = SIZE;
         canvas.style.width = canvas.style.height = SIZE;
 
         game.size = SIZE;
-        game.board = makeBoard(BOARD_SIZE); 
         game.margin = SIZE/20;
         game.grid = (SIZE - game.margin * 2) / game.board.length;
         game.gap = game.grid/10;
@@ -73,8 +77,7 @@
         game.restartBtnDimensions.width = 10*game.size/12;
         game.restartBtnDimensions.height = 2*game.size/12; 
 
-        game.playerTurn = game.playerX;
-        game.outcome = GAMEPLAY_STATES.playing;
+
         
         drawGame(game);
 
@@ -92,17 +95,17 @@
         socket.emit('startGame');
         hideStartBtn();
         displayConnectingMsg();
-    })
+    });
 
 
     socket.on('startGame', ({ playersReady }) => {
         handleStartGame(playersReady);
-    })
+    });
 
     socket.on('gameFull', () => {
         console.log("game is full");
         displayGameFullMsg();
-    })
+    });
 
     socket.on('youJoined', ({id, token}) => {
         console.log(`joined, id: ${id}. Playing as ${token}`);
@@ -111,32 +114,53 @@
         localState.token = token; 
 
         displayToken(token);
-    })
+    });
 
     socket.on('leftGame', ({ id }) => {
         handlePlayerDisconnect();
         console.log("oponent left the game");
-    })
+    });
 
-    socket.on('newMove', ({ game, numMoves}) => {
-        /* 
-        TODO
-        - validate number of moves
-        - render moves on board
-        */ 
+    socket.on('newMove', ({ serverGame, numMoves }) => {
+       if (numMoves != game.numMoves) {
+           console.log('ERROR in newMove - client and server mismatch of move count');
+       }
 
         console.log('newMove');
-        console.log(game);
+        console.log(serverGame);
         console.log('numMoves', numMoves);
 
-    })
+       updateGameFromServer(serverGame);
+       redraw(game);
+    });
+
+    socket.on('restartGame', ({ serverGame }) => {
+        // TODO - verify?
+
+        console.log("game restart")
+        updateGameFromServer(serverGame);
+        redraw(game);
+    });
 
     function SOCKET_sendMove(game) {
+        // TODO omit non-relevant data from emit to server.
+        game.numMoves += 1;
+
         socket.emit('playMove', {
             id: localState.game_id, 
             token: localState.token,  
             game
         });
+    }
+
+    function SOCKET_sendRestart(game) {
+        socket.emit('restartGame', {
+            id: localState.game_id, 
+            token: localState.token,  
+            game
+        });
+
+
     }
 
     /* 
@@ -360,6 +384,16 @@
 
     }
 
+    function updateGameFromServer(serverGame) {
+        console.log("update");
+        /* - assume server is valid. */
+       game.board = serverGame.board;
+       game.playerTurn = serverGame.playerTurn;
+
+       game.outcome = serverGame.outcome;
+       game.winner = serverGame.winner;
+    }
+    
     function endGame(outcome, winner) {
         let { playerTurn, playerX, playerO } = game;
         if (winner != null && playerTurn != winner){
@@ -388,6 +422,7 @@
     }
 
     function switchTurn() {
+        /* TODO - eliminate from FE? now absorbed in BE */ 
         const newPlayer = switchTurnTo[game.playerTurn];
         if (!newPlayer) {
             console.log (`error switching turns - invalid player ${game.playerTurn}`);
@@ -413,7 +448,6 @@
             endGame(outcome, winner);
         }
         console.log("square played! Board - ", game.board);
-        SOCKET_sendMove(game)
 
         return outcome;
 
@@ -483,14 +517,18 @@
         let square = checkForSquareHover(); // {row: int, col: int}
         if (game.outcome != GAMEPLAY_STATES.playing && checkForRestartHover()) { 
             restartGame();
-        } else {
+            SOCKET_sendRestart(game);
+        } else if (localState.token === game.playerTurn) {
             let outcome;
             if (square) {
                 outcome = playSquare(square.row, square.col);
             }
             if (outcome) {
                 redraw(game);
+                SOCKET_sendMove(game)
             } 
+        } else {
+            console.log('it is not your turn to play.')
         }
     }
 

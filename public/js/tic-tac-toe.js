@@ -31,7 +31,6 @@
         playerX: "X",
         playerO: "O",
         playerTurn: null,
-        gameOver: false, 
         outcome: null, // will be set to one of the GAMEPLAY_STATES.
         winner: null, // will be set to PlayerX or PlayerO if there is a winner. 
         //view data
