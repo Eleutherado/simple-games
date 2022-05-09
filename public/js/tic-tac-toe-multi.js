@@ -146,21 +146,21 @@
     });
 
     function SOCKET_sendMove(game) {
-        // TODO omit non-relevant data from emit to server.
         game.numMoves += 1;
+
+        let gameData = packageGameData(game);
 
         socket.emit('playMove', {
             id: localState.game_id, 
             token: localState.token,  
-            game
+            game: gameData
         });
     }
 
-    function SOCKET_sendRestart(game) {
+    function SOCKET_sendRestart() {
         socket.emit('restartGame', {
             id: localState.game_id, 
             token: localState.token,  
-            game
         });
 
     }
@@ -213,6 +213,16 @@
     functions who aren't modifying the game object 
     should not need to directly access it
     */ 
+
+    function packageGameData (game) {
+       let gameData = {
+           board: game.board, 
+           playerTurn: game.board, 
+           outcome: game.outcome, 
+           winner: game.winner
+       }
+       return gameData;
+    }
 
     function makeBoard(size) {
         let board = [];
@@ -444,7 +454,7 @@
         game.board[row][col] = game.playerTurn;
 
         let { outcome, winner } = checkGameEnd(game.board, game.playerTurn); // return {outcome, winner}. If tie, winner = null;
-        if (outcome === GAMEPLAY_STATES.playing) {
+        if (outcome !== GAMEPLAY_STATES.playing) {
             switchTurn();
         } else {
             endGame(outcome, winner);
@@ -519,7 +529,7 @@
         let square = checkForSquareHover(); // {row: int, col: int}
         if (game.outcome != GAMEPLAY_STATES.playing && checkForRestartHover()) { 
             restartGame();
-            SOCKET_sendRestart(game);
+            SOCKET_sendRestart();
         } else if (localState.token === game.playerTurn) {
             let outcome;
             if (square) {

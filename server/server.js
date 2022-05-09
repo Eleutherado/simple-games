@@ -195,7 +195,6 @@ io.on('connection', (socket) => {
     let validId = verifyMoveId(id, token);
 
     if (validId && gameIsOn()) {
-      console.log('valid move id & game is on');
       updateServerGame(game)
 
       let { numMoves } = GAME_STATE.game;
@@ -208,13 +207,12 @@ io.on('connection', (socket) => {
 
   })
 
-  socket.on('restartGame', ({id, token, game}) => {
+  socket.on('restartGame', ({ id, token }) => {
     console.log("game restart");
 
     
     let validId = verifyMoveId(id, token);
     if (validId) {
-      console.log('valid move id');
       newGame(GAME_STATE.plyr1, GAME_STATE.plyr2, true);
 
       let serverGame = GAME_STATE.game;
