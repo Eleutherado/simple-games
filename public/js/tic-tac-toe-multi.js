@@ -121,13 +121,16 @@
         console.log("oponent left the game");
     });
 
-    socket.on('newMove', ({ serverGame, numMoves }) => {
-       if (numMoves != game.numMoves) {
-           console.log('ERROR in newMove - client and server mismatch of move count');
+    socket.on('newMove', ({ serverGame, numMoves, mover_id }) => {
+
+        if (mover_id !== localState.game_id) game.numMoves += 1;
+
+        if (numMoves != game.numMoves) {
+            console.log('ERROR in newMove - client and server mismatch of move count');
        }
 
         console.log('newMove');
-        console.log(serverGame);
+        // console.log(serverGame);
         console.log('numMoves', numMoves);
 
        updateGameFromServer(serverGame);
@@ -159,7 +162,6 @@
             token: localState.token,  
             game
         });
-
 
     }
 
@@ -433,7 +435,7 @@
 
     function playSquare(row, col) {
         // If valid move, play square, then check for victory, then switch turns. 
-        // return info so redraw can be called. 
+        // return info so redraw can be called.
         if (!isValidPlay(row, col, game.board, game.outcome)){
             console.log(`invalid play at {${row}, ${col}}`);
             return null;

@@ -67,11 +67,6 @@ function newGame(p1, p2, restart=false) {
   GAME_STATE.game.winner = null;
 }
 
-function playersReady() {
-  return Boolean(GAME_STATE.plyr1 && GAME_STATE.plyr2);
-}
-
-
 function joinGame(socketId) {
   console.log("attempting to join, gameState: ", GAME_STATE);
   let { plyr1, plyr2, p1Token, p2Token } = GAME_STATE;
@@ -110,17 +105,12 @@ function leaveGame(socketId) {
   return false; 
 }
 
-function verifyMoveId(id, token) {
-  return (
-    (id === GAME_STATE.plyr1 && token === GAME_STATE.p1Token) || 
-    (id === GAME_STATE.plyr2 && token === GAME_STATE.p2Token)
-  )
-}
 
 function updateServerGame(game) {
 
-  GAME_STATE.game.board = game.board;
+  GAME_STATE.game.board = game.board; // TODO - check that new board is obtainable by a single legal move.
   GAME_STATE.game.playerTurn = switchTurn(GAME_STATE.game.playerTurn);
+
   /* TODO verify game outcomes on server */
   GAME_STATE.game.outcome = game.outcome;
   GAME_STATE.game.winner = game.winner;
@@ -129,6 +119,22 @@ function updateServerGame(game) {
   GAME_STATE.game.numMoves += 1; // How to do on restart
 
 }
+
+function playersReady() {
+  return Boolean(GAME_STATE.plyr1 && GAME_STATE.plyr2);
+}
+
+function gameIsOn() {
+  return GAME_STATE.game.outcome === GAMEPLAY_STATES.playing
+}
+
+function verifyMoveId(id, token) {
+  return (
+    (id === GAME_STATE.plyr1 && token === GAME_STATE.p1Token) || 
+    (id === GAME_STATE.plyr2 && token === GAME_STATE.p2Token)
+  )
+}
+
 
 function switchTurn(playerTurn) {
   // note: Absorbed from FE
@@ -184,19 +190,17 @@ io.on('connection', (socket) => {
   })
 
   socket.on('playMove', ({id, token, game}) => {
-    // TODO: check id & token, 
-    // make move on server board
-    // broadcast to 'game' room. 
     console.log("move played");
     // console.log({id, token, game});
     let validId = verifyMoveId(id, token);
-    if (validId) {
-      console.log('valid move id');
+
+    if (validId && gameIsOn()) {
+      console.log('valid move id & game is on');
       updateServerGame(game)
 
       let { numMoves } = GAME_STATE.game;
       let serverGame = GAME_STATE.game;
-      io.to('game').emit('newMove', { serverGame, numMoves });
+      io.to('game').emit('newMove', { serverGame, numMoves, mover_id: id });
     } else {
       // TODO error handling? 
       console.log('player ID and token invalid');
