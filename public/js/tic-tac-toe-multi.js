@@ -130,7 +130,6 @@
        }
 
         console.log('newMove');
-        // console.log(serverGame);
         console.log('numMoves', numMoves);
 
        updateGameFromServer(serverGame);
@@ -454,7 +453,8 @@
         game.board[row][col] = game.playerTurn;
 
         let { outcome, winner } = checkGameEnd(game.board, game.playerTurn); // return {outcome, winner}. If tie, winner = null;
-        if (outcome !== GAMEPLAY_STATES.playing) {
+        
+        if (outcome === GAMEPLAY_STATES.playing) {
             switchTurn();
         } else {
             endGame(outcome, winner);
@@ -505,7 +505,6 @@
 
         if (game.outcome != GAMEPLAY_STATES.playing) {
             if (checkForRestartHover()){
-                console.log('hovering over Restart!!')
                 setHighlightedRestart();
                 redraw(game);
             } else {
@@ -566,7 +565,6 @@
         for (let row = 0; row < board.length; row++){
             for (let col = 0; col < board.length; col++){
                 if (checkForMouseCollision(mouseX, mouseY, row, col)){
-                    // console.log(`collision found for {${row}, ${col}}. Mouse: {${mouseX}, ${mouseY}}`);
                     return {row: row, col: col};
                 }
             }
