@@ -1,9 +1,11 @@
 const path = require('path');
 const express = require('express');
 const http = require('http');
+const bodyParser = require('body-parser');
 const { Server } = require('socket.io');
 const { emit } = require('process');
 const { GAMEPLAY_STATES, switchTurnTo } = require('../public/const');
+const { json } = require('express/lib/response');
 
 const publicPath = path.join(__dirname, '/../public');
 const port = process.env.PORT || 3000;
@@ -11,8 +13,16 @@ let app = express();
 let server = http.createServer(app);
 let io = new Server(server);
 
+// parse application/json
+app.use(bodyParser.json());
+// parse application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: true }));
+
+
 
 const BOARD_SIZE = 3;
+
+let ACTIVE_GAMES = new Set();
 
 let GAME_STATE = {
   // create user A & B, assign them. Track game sess here.
@@ -158,6 +168,14 @@ function makeBoard(size) {
   return board;
 }
 
+// fns for multiple games 
+
+async function validateSocketId(socketId) { 
+  const ids = await io.allSockets();
+  console.log(`ids: `, ids);
+  return ids.has(socketId);
+}
+
 
 /* -- Socket Controller --
   controls the socket events and routes the handling of them. 
@@ -238,6 +256,50 @@ io.on('connection', (socket) => {
   
 
 })
+
+/* -- exposed API to Frontend -- 
+*/ 
+
+// helpers
+function generateGameCode() {
+  // must be unique - will use method for 755,160 games max (4 digit code from 31 char set)
+  let alphaNumReadable = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'// removes 0,O,1,I,L
+  let code = [];
+  const codeLen = 4
+
+  while (code.length < codeLen) {
+    let newChar = alphaNumReadable[Math.floor(Math.random() * alphaNumReadable.length)]
+    code.push(newChar);
+  }
+
+  return code.join("");
+}
+
+function generateUniqueGameCode(collisionCount=0) {
+  let code = generateGameCode();
+
+  if (ACTIVE_GAMES.has(code)) {
+    console.log(`code collision:${code}, \n ACTIVE_GAMES: ${ACTIVE_GAMES}`)
+    code = generateUniqueGameCode(collisionCount + 1)
+  } else {
+    return code
+  }
+}
+// api routes & controllers
+const apiRoute = '/api'
+
+app.post(`${apiRoute}/tic-tac-toe/game`, (req, res) => { 
+  // Generate valid 4 char code and send to user. 
+  let code = generateUniqueGameCode()
+
+  ACTIVE_GAMES.add(code);
+
+  console.log('new game created, ACTIVE_GAMES: \n', ACTIVE_GAMES);
+  res.json({ code })
+
+})
+
+
 
 // serve the content
 app.use(express.static(publicPath));

@@ -24,10 +24,59 @@
         <h1>Multiplayer Tic Tac Toe</h1>
       </div>
     </div>
-    
 
-  </div>
 
+    <div class="button-row">
+      <div id="startBtnBlock" class="flex justify-center items-center">
+        <button id="newGameBtn" class="text-center bg-emerald-500 py-10 px-20 m-5 rounded-lg hover:shadow-2xl hover:brightness-150" >
+          New Game
+        </button>
+        <button id="joinGameBtn" class="text-center bg-emerald-500 py-10 px-20 m-5 rounded-lg hover:shadow-2xl hover:brightness-150" >
+          Join Game
+        </button>
+      </div>
+    </div>
+
+    <div class="page-status">
+      <div class="Roboto text-center text-3xl mt-10">
+        <h3 id="serverFailMsg" style="display: none" class="text-slate-100 ml-10">
+          Woops... There was an error contacting the server
+        </h3>
+      </div>
+    </div>
+
+    <script>
+      const API_URL = 'http://localhost:3000/api'
+      const APP_URL = 'http://localhost:3000'
+      let newGameBtn = document.getElementById('newGameBtn');
+      newGameBtn.addEventListener('click', handleNewGameClick);
+
+      async function handleNewGameClick(e) {
+
+        // If successful then put code in local storage and send to share w friends. 
+
+        try {
+          let newGameResponse = await fetch(`${API_URL}/tic-tac-toe/game`, {
+            method: 'POST' 
+          })
+ 
+          let result = await newGameResponse.json();
+          if (result.code) {
+            console.log("received code: ", result.code)
+            localStorage.setItem('gameCode', result.code)
+            window.location.href = `${APP_URL}/games/tic-tac-toe-multiplayer/tic-tac-toe-multi.html`;
+          } else {
+            console.log("error, missing game code from server response", response);
+          }
+
+        } catch(err) {
+          console.log("error in API request \n", err);
+          document.getElementById("serverFailMsg").style.display = 'inline';
+        }
+         
+
+      }
+    </script>
 </body>
 </html>
 

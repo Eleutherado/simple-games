@@ -10,4 +10,6 @@ const switchTurnTo = {
   "O" : "X",
 };
 
-module.exports = {GAMEPLAY_STATES, switchTurnTo}
+const API_URL = 'http://localhost:3000/api'
+
+module.exports = {GAMEPLAY_STATES, switchTurnTo, API_URL}
