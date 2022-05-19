@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <title>Tic Tac Toe Join Multiplayer Game</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="" />
+  <link rel="stylesheet" href="../../global.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+
+</head>
+
+<body>
+  <div class="py-2 w-full">
+    <div class="crumb">
+      <p class="Roboto text-sm text-slate-100 hover:underline ml-10">
+        <a href="/games/tic-tac-toe-multiplayer/create-or-join.html"> << Back to create or join</a>
+      </p>
+    </div>
+    
+    <div class="title">
+      <div class="Roboto text-center text-slate-100 mt-5 mb-10">
+        <h1>Multiplayer Tic Tac Toe</h1>
+      </div>
+    </div>
+
+    <div class="user-prompt">
+      <div class="Roboto text-center mt-10 mb-10">
+        <h2 class="text-slate-100 text-3xl ml-10">
+          Please enter the 4 digit code to join the game.
+        </h2>
+      </div>
+    </div>
+
+    <div class="game-code-form">
+      <form name="game-code-form" class="flex flex-col justify-center items-center Roboto">
+        <input type="text" 
+        placeholder="0000"
+        maxlength="4"
+        class="mt-1 block px-3 py-2 bg-white border border-emerald-300 
+        rounded-md text-sm shadow-sm placeholder-slate-400
+        focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"/>
+        <p id="valError" class="text-red-600"></p>
+        <button class="bg-emerald-500 px-10 py-5 mt-5 rounded-lg hover:shadow-2xl hover:brightness-150">Send</button>
+      </form>
+    </div>
+
+    <div class="user-prompt-small">
+      <div class="Roboto text-center mt-10 mb-10">
+        <h3 class="text-slate-100 text-sm ml-10">
+          The person who created the game has the code. Otherwise go back and create a new game
+        </h3>
+      </div>
+    </div>
+
+
+    <div class="page-status">
+      <div class="Roboto text-center text-3xl mt-10">
+        <h3 id="serverFailMsg" style="display: none" class="text-slate-100 ml-10">
+          Woops... There was an error contacting the server
+        </h3>
+      </div>
+    </div>
+
+    <script>
+      const API_URL = 'http://localhost:3000/api'
+      const APP_URL = 'http://localhost:3000'
+
+      /* TODO 
+        On submit add validation, 
+          should be exactly 4 chars long. 
+          Can only be alphanumeric, nothing else. 
+        If invalid - add red border to input box. 
+        If valid, send to Backend. 
+        ** in backend - validate submission & if valid try to match to room. 
+        Backend can respond with room match or no match. 
+        If not match then display 'no games match the entered code'
+        If match --> send to multi as new player!
+
+      */
+
+    </script>
+</body>
+</html>
+

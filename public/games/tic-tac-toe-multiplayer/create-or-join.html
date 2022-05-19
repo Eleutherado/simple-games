@@ -31,9 +31,9 @@
         <button id="newGameBtn" class="text-center bg-emerald-500 py-10 px-20 m-5 rounded-lg hover:shadow-2xl hover:brightness-150" >
           New Game
         </button>
-        <button id="joinGameBtn" class="text-center bg-emerald-500 py-10 px-20 m-5 rounded-lg hover:shadow-2xl hover:brightness-150" >
+        <a id="joinGameBtn" href="join-game.html" class="text-center bg-cyan-500 py-10 px-20 m-5 rounded-lg hover:shadow-2xl hover:brightness-150" >
           Join Game
-        </button>
+        </a>
       </div>
     </div>
 
@@ -52,13 +52,12 @@
       newGameBtn.addEventListener('click', handleNewGameClick);
 
       async function handleNewGameClick(e) {
-
         // If successful then put code in local storage and send to share w friends. 
 
         try {
           let newGameResponse = await fetch(`${API_URL}/tic-tac-toe/game`, {
             method: 'POST' 
-          })
+          });
  
           let result = await newGameResponse.json();
           if (result.code) {
