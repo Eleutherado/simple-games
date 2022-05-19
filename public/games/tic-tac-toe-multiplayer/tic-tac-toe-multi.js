@@ -173,7 +173,7 @@
    const hideDisconnectMsg = () => plyrDisconnectMsg.style.display = 'none'; 
    
    function hideStartBtn() {
-       document.getElementById("startBtnGrid").style.display = 'none';
+       document.getElementById("startBtnBlock").style.display = 'none';
    }
    function displayGameFullMsg() {
        document.getElementById("gameFullMsg").style.display = 'inline';
