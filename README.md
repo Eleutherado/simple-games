@@ -16,6 +16,8 @@ I created this project because I recall really enjoying programming games and I 
 - [x] Build Snake 
 - [x] Build Tic Tac Toe
 - [x] Integrate into one site
-- [ ] Add multiplayer functionality to Tic-Tac-Toe using websockets. 
+- [x] Add multiplayer functionality to Tic-Tac-Toe using websockets. 
+- [ ] Allow multiple Tic-Tac-Toe games at once
+- [ ] Deploy
 - [ ] Refactor frontend into SPA, likely using Vue
 
