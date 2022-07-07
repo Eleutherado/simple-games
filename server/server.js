@@ -187,6 +187,35 @@ io.on('connection', (socket) => {
   console.log('A user just connected.');
   console.log(`The client count is ${io.engine.clientsCount}`);
 
+  socket.on('joinRoom', ({ room }) => {
+    /* try to join room 
+    verify code exists & has 1 person
+    Then join --> connect socket to room & respond w 'joined'
+    TODO If has 0 ppl, remove & fail. 
+    If has 2 ppl, fail. 
+    TODO   --> respond with 'error'
+    */
+    const clients = io.sockets.adapter.rooms.get(room);
+    const numClients = clients ? clients.size : 0;
+    const roomExists = ACTIVE_GAMES.has(room);
+
+    if(roomExists && numClients <= 1) {
+      // create or join room 
+      socket.join(room)
+      console.log('room joined!', room);
+      io.to(room).emit('joinedRoom', { numClients , roomCode: room })
+
+    } else if (!roomExists) {
+      // fail bc wrong room number. 
+      console.log('wrong room number - ', room);
+
+    } else {
+      // fail bc of numClients
+      console.log('num clients: ', numClients);
+
+    }
+  })
+
   socket.on('startGame', () => {
 
     let token = joinGame(socket.id);
@@ -298,6 +327,22 @@ app.post(`${apiRoute}/tic-tac-toe/game`, (req, res) => {
   res.json({ code })
 
 })
+
+// app.post(`${apiRoute}/tic-tac-toe/game/join`, (req, res) => { 
+//   /* TODO verify code exists, has 1 person. 
+//     Then join 
+//     If has 0 ppl, remove & fail. 
+//     If has 2 ppl, fail. 
+    
+//   */
+//   let code = req.body.code;
+
+//   console.log(`code sent: ${code}`);
+
+
+//   res.json({ code })
+
+// })
 
 
 

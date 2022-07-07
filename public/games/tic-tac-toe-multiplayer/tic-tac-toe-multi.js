@@ -51,6 +51,7 @@
     let localState = {
         game_id: null, 
         token: null, 
+        gameCode: null,
     }
 
 
@@ -89,6 +90,15 @@
     let connectingMsg = document.getElementById('connectingMsg');
     let tokenDisplay = document.getElementById('tokenDisplay');
     let plyrDisconnectMsg = document.getElementById('playerDisconnectMsg');
+    let gameCodeDisplay = document.getElementById('codeDisplay');
+
+    let gameCode = localStorage.getItem('gameCode');
+    if (!gameCode) { 
+        console.log('ERROR - missing game code at init');
+    } else {
+        // On load fetch gameCode from localStorage and then initiate game joining protocol. 
+        socket.emit('joinRoom', { room: gameCode });
+    }
 
 
     startBtn.addEventListener('click', () => {
@@ -96,6 +106,13 @@
         hideStartBtn();
         displayConnectingMsg();
     });
+
+    socket.on('joinedRoom', ({ numClients, roomCode }) => {
+        //successfully joined an existing room on server. 
+        localState.gameCode = roomCode;
+        console.log("joined room, num clients: ", numClients, "code: ", localState.gameCode );
+        displayGameCode();
+    })
 
 
     socket.on('startGame', ({ playersReady }) => {
@@ -171,6 +188,16 @@
    const hideConnectingMsg = () => connectingMsg.style.display = 'none';
    const displayDiconnectMsg = () => plyrDisconnectMsg.style.display = 'inline'; 
    const hideDisconnectMsg = () => plyrDisconnectMsg.style.display = 'none'; 
+   
+   function displayGameCode() {
+       let textNodes = gameCodeDisplay.childNodes;
+       textNodes.forEach((node) => {
+           if (node.tagName === "H2") {
+               node.style.display = 'inline';
+           }
+       }) 
+       document.getElementById('gameCode').innerText = localState.gameCode;    
+   }
    
    function hideStartBtn() {
        document.getElementById("startBtnBlock").style.display = 'none';
