@@ -34,16 +34,18 @@
     </div>
 
     <div class="game-code-form">
-      <form name="game-code-form" class="flex flex-col justify-center items-center Roboto">
-        <input type="text" 
+      <div name="game-code-form" class="flex flex-col justify-center items-center Roboto">
+        <input 
+        id="codeInput"
+        type="text" 
         placeholder="0000"
         maxlength="4"
         class="mt-1 block px-3 py-2 bg-white border border-emerald-300 
         rounded-md text-sm shadow-sm placeholder-slate-400
         focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"/>
         <p id="valError" class="text-red-600"></p>
-        <button class="bg-emerald-500 px-10 py-5 mt-5 rounded-lg hover:shadow-2xl hover:brightness-150">Send</button>
-      </form>
+        <button id="submitBtn" class="bg-emerald-500 px-10 py-5 mt-5 rounded-lg hover:shadow-2xl hover:brightness-150">Send</button>
+      </div>
     </div>
 
     <div class="user-prompt-small">
@@ -64,21 +66,54 @@
     </div>
 
     <script>
-      const API_URL = 'http://localhost:3000/api'
-      const APP_URL = 'http://localhost:3000'
-
-      /* TODO 
-        On submit add validation, 
+      /*
+        TODO On submit add validation, 
           should be exactly 4 chars long. 
           Can only be alphanumeric, nothing else. 
-        If invalid - add red border to input box. 
+        TODO If invalid - add red border to input box. 
         If valid, send to Backend. 
-        ** in backend - validate submission & if valid try to match to room. 
-        Backend can respond with room match or no match. 
+        DONE - ** in backend - validate submission & if valid try to match to room. 
+        DONE - Backend can respond with room match or no match. 
         If not match then display 'no games match the entered code'
-        If match --> send to multi as new player!
-
+        DONE - If match --> send to multi as new player!
       */
+     
+      const API_URL = 'http://localhost:3000/api'
+      const APP_URL = 'http://localhost:3000'
+      let submitBtn = document.getElementById('submitBtn');
+      submitBtn.addEventListener('click', handleNewGameClick);
+
+      localStorage.removeItem('gameCode');
+
+      async function handleNewGameClick(e) {
+        let codeInput = document.getElementById("codeInput").value;
+        let input = { code : codeInput };
+        
+        // If successful then put code in local storage and send to game
+        try {
+          let joinGameResponse = await fetch(`${API_URL}/tic-tac-toe/game/join`, {
+            method: 'POST', 
+            body: JSON.stringify(input),
+            headers: {'Content-Type': 'application/json'}
+          });
+
+          console.log(joinGameResponse);
+
+          let result = await joinGameResponse.json();
+          console.log(result);
+          if (result.code) {
+            console.log("received code: ", result.code)
+            localStorage.setItem('gameCode', result.code) // TODO - handle removal of the game code. 
+            window.location.href = `${APP_URL}/games/tic-tac-toe-multiplayer/tic-tac-toe-multi.html`;
+          } else {
+            console.log("error, missing game code from server response", joinGameResponse);
+          }
+
+        } catch(err) {
+          console.log("error in API request \n", err);
+          document.getElementById("serverFailMsg").style.display = 'inline';
+        }
+      }
 
     </script>
 </body>

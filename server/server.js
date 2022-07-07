@@ -176,6 +176,14 @@ async function validateSocketId(socketId) {
   return ids.has(socketId);
 }
 
+function verifyRoomCode(room) {
+  // return number of connections in a given room or null if it doesn't exist. 
+  const clients = io.sockets.adapter.rooms.get(room);
+  const numClients = clients ? clients.size : 0;
+  const roomExists = ACTIVE_GAMES.has(room);
+
+  return { numClients, roomExists };
+}
 
 /* -- Socket Controller --
   controls the socket events and routes the handling of them. 
@@ -195,10 +203,8 @@ io.on('connection', (socket) => {
     If has 2 ppl, fail. 
     TODO   --> respond with 'error'
     */
-    const clients = io.sockets.adapter.rooms.get(room);
-    const numClients = clients ? clients.size : 0;
-    const roomExists = ACTIVE_GAMES.has(room);
-
+    
+    const { numClients, roomExists } = verifyRoomCode(room);
     if(roomExists && numClients <= 1) {
       // create or join room 
       socket.join(room)
@@ -328,21 +334,35 @@ app.post(`${apiRoute}/tic-tac-toe/game`, (req, res) => {
 
 })
 
-// app.post(`${apiRoute}/tic-tac-toe/game/join`, (req, res) => { 
-//   /* TODO verify code exists, has 1 person. 
-//     Then join 
-//     If has 0 ppl, remove & fail. 
-//     If has 2 ppl, fail. 
+app.post(`${apiRoute}/tic-tac-toe/game/join`, (req, res) => { 
+  /* verifies room exists and has 1 or 0 ppl in it 
+    Then join 
+    If has 2 ppl, fail. 
     
-//   */
-//   let code = req.body.code;
+  */
+  let code = req.body.code;
+  console.log(`code sent: ${code}`);
 
-//   console.log(`code sent: ${code}`);
+  const { numClients, roomExists } = verifyRoomCode(code);
+    if(roomExists && numClients <= 1) {
+      // room exists and has 1 or 0 connections. 
+      res.json({ code })
 
+    } else if (!roomExists) {
+      res.json(`Error - room ${code} does not exist`);
+      // console.log('wrong room number - ', room);
 
-//   res.json({ code })
+    } else {
+      // fail bc of numClients
+      res.json(`Error - this room is already full with ${numClients} connections`);
+      // throw new Error(`Error - this room is already full with ${numClients} connections`);
+      // console.log('num clients: ', numClients);
 
-// })
+    }
+
+  res.json({ code })
+
+})
 
 
 
