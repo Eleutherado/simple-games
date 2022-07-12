@@ -25,3 +25,7 @@ Feature example:
 The button changes color on hover
 mousemove event from init evt listener -> handler in controller if on hover { helper } sets btn to highlight { Actions API } & redraw { draw }.
 drawing fn is passed highlighted flag.
+
+
+MultiPlyr Implementation in FE: 
+* once players arrive to the actual game page - the socket protocol should be identical for both the game creator and game joiner.

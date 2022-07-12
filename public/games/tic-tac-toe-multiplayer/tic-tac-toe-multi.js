@@ -100,13 +100,6 @@
         socket.emit('joinRoom', { room: gameCode });
     }
 
-
-    startBtn.addEventListener('click', () => {
-        socket.emit('startGame');
-        hideStartBtn();
-        displayConnectingMsg();
-    });
-
     socket.on('joinedRoom', ({ numClients, roomCode }) => {
         //successfully joined an existing room on server. 
         localState.gameCode = roomCode;
@@ -115,7 +108,15 @@
     })
 
 
-    socket.on('startGame', ({ playersReady }) => {
+    startBtn.addEventListener('click', () => {
+        socket.emit('startGame', { room: localState.gameCode });
+        hideStartBtn();
+        displayConnectingMsg();
+    });
+
+
+    socket.on('startedGame', ({ playersReady }) => {
+        console.log("startedGame recieved, pReady: ", playersReady);
         handleStartGame(playersReady);
     });
 
@@ -150,6 +151,7 @@
         console.log('numMoves', numMoves);
 
        updateGameFromServer(serverGame);
+    //    console.log("game after update - ", game)
        redraw(game);
     });
 
@@ -169,14 +171,16 @@
         socket.emit('playMove', {
             id: localState.game_id, 
             token: localState.token,  
-            game: gameData
+            game: gameData, 
+            room: localState.gameCode
         });
     }
 
     function SOCKET_sendRestart() {
         socket.emit('restartGame', {
             id: localState.game_id, 
-            token: localState.token,  
+            token: localState.token,
+            room: localState.gameCode 
         });
 
     }
@@ -423,7 +427,7 @@
     }
 
     function updateGameFromServer(serverGame) {
-        console.log("update");
+        console.log("server update");
         /* - assume server is valid. */
        game.board = serverGame.board;
        game.playerTurn = serverGame.playerTurn;
@@ -510,7 +514,6 @@
 
     function handleStartGame(playersReady) {
 
-        console.log("game started!")
         if (playersReady){
             displayGame();
             restartGame();

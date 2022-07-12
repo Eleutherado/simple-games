@@ -22,140 +22,213 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 const BOARD_SIZE = 3;
 
-let ACTIVE_GAMES = new Set();
+let ACTIVE_GAMES = {}
+let GAMES_OF_ACTIVE_PLYRS = {}
 
-let GAME_STATE = {
-  // create user A & B, assign them. Track game sess here.
-  /* server-wide data */ 
+/* API to access server-wide active_games. */
 
-  /* games-specific data*/ 
-  plyr1: null, 
-  plyr2: null,
-  p1Token: "X",
-  p2Token: "O",
-  starter: null,
+function gameExists(room) {
+  return room in ACTIVE_GAMES;
+}
 
-  game: { 
-    numMoves: 0, 
-
-    board: null,
-    playerTurn: null,
-    outcome: null, // will be set to one of the GAMEPLAY_STATES.
-    winner: null,
+function getGame(room) {
+  if(gameExists(room)){
+    return ACTIVE_GAMES[room];
   }
+  return null;
 }
 
+// fns for multiple games 
 
-
-
-/* -- Game Model API -- 
-Functions here read and modify data from the GAME_STATE. 
-*/ 
-
-function selectStarter(restart) {
-  let token; 
-  if (restart) {
-    token = switchTurnTo[GAME_STATE.starter]
-
-  } else {
-    token = GAME_STATE.p1Token;
-  }
-  return token;
+function verifyConnectionToRoom(room, socketId) {
+  const clients = io.sockets.adapter.rooms.get(room);
+  return clients.has(socketId);
 }
 
-function newGame(p1, p2, restart=false) {
-  GAME_STATE.plyr1 = p1,
-  GAME_STATE.plyr2 = p2,
-  GAME_STATE.game.numMoves = 0; 
+function verifyRoomCode(room) {
+  // return number of connections in a given room or null if it doesn't exist. 
+  const clients = io.sockets.adapter.rooms.get(room);
+  const numClients = clients ? clients.size : 0;
+  const roomExists = gameExists(room);
 
-  GAME_STATE.game.board = makeBoard(BOARD_SIZE);
-
-  token = selectStarter(restart);
-  GAME_STATE.game.playerTurn = token;
-  GAME_STATE.starter = token;
-  GAME_STATE.game.outcome = GAMEPLAY_STATES.playing;
-  GAME_STATE.game.winner = null;
+  return { numClients, roomExists };
 }
 
-function joinGame(socketId) {
-  console.log("attempting to join, gameState: ", GAME_STATE);
-  let { plyr1, plyr2, p1Token, p2Token } = GAME_STATE;
+function createRoom(room) {
+  ACTIVE_GAMES[room] = new gameObj(room);
+}
 
-  if (plyr1 == null){
-    GAME_STATE.plyr1 = socketId;
-    
-    console.log(`${socketId} joined p1`);
-    return p1Token;
+function removeRoom(room){
+  delete ACTIVE_GAMES[room]
+  console.log("room removed. Active Games: ", ACTIVE_GAMES);
+}
 
-  } else if (plyr2 == null) {
-    GAME_STATE.plyr2 = socketId;
-    console.log(`${socketId} joined p2`);
-    return p2Token;
-
-  } else {
-    console.log("failed to join, game is full");
+function getGameBySocketId(socketId) {
+  if (!socketId in GAMES_OF_ACTIVE_PLYRS) {
+    console.log("Error getting game by socket id. Id not found");
     return null;
   }
+  let room = GAMES_OF_ACTIVE_PLYRS[socketId];
+  let game = getGame(room);
 
-}
-
-function leaveGame(socketId) {
-  console.log("leaving game");
-  let { plyr1, plyr2 } = GAME_STATE;
-
-  if (plyr1 === socketId){
-    GAME_STATE.plyr1 = null;
-    return true;
-
-  } else if (plyr2 === socketId){
-    GAME_STATE.plyr2 = null;
-    return true;
-
+  if (!game) {
+    console.log("Error getting game by socket id. Room not found");
+    return null
   }
-  return false; 
+  return game
 }
 
 
-function updateServerGame(game) {
 
-  GAME_STATE.game.board = game.board; // TODO - check that new board is obtainable by a single legal move.
-  GAME_STATE.game.playerTurn = switchTurn(GAME_STATE.game.playerTurn);
 
-  /* TODO verify game outcomes on server */
-  GAME_STATE.game.outcome = game.outcome;
-  GAME_STATE.game.winner = game.winner;
+class gameObj {
+  constructor(code) {
+    this.game_code = code;
+    this.game_state = {
+      // create user A & B, assign them. Track game sess here.    
+      /* games-specific data*/ 
+      plyr1: null, 
+      plyr2: null,
+      p1Token: "X",
+      p2Token: "O",
+      starter: null,
+    
+      game: { 
+        numMoves: 0, 
+    
+        board: null,
+        playerTurn: null,
+        outcome: null, // will be set to one of the GAMEPLAY_STATES.
+        winner: null,
+      }
+    }
+  }
+  /* -- Game Model API -- 
+  Functions here read and modify data from the game_state and stores to keep track of active games and players
+  */
+
+  registerGameOfPlyr(socketId){
+    GAMES_OF_ACTIVE_PLYRS[socketId] = this.game_code;
+  }
+
+  deRegisterGameOfPlyr(socketId) {
+    delete GAMES_OF_ACTIVE_PLYRS[socketId];
+    console.log("deregistered game for socket Id. Games of Active Plyrs: ", GAMES_OF_ACTIVE_PLYRS);
+    
+  }
+ 
+  joinGame(socketId) {
+    console.log("joining game ", this.game_code);
+    // console.log("attempting to join, gameState: ", this.game_state);
+    let { plyr1, plyr2, p1Token, p2Token } = this.game_state;
   
+    if (plyr1 == null){
+      this.game_state.plyr1 = socketId;
+      this.registerGameOfPlyr(socketId);
+      console.log(`${socketId} joined p1`);
 
-  GAME_STATE.game.numMoves += 1; // How to do on restart
+      return p1Token;
+  
+    } else if (plyr2 == null) {
+      this.game_state.plyr2 = socketId;
+      this.registerGameOfPlyr(socketId);
+      console.log(`${socketId} joined p2`);
 
-}
+      return p2Token;
+  
+    } else {
+      console.log("failed to join, game is full");
+      return null;
+    }
+  }
 
-function playersReady() {
-  return Boolean(GAME_STATE.plyr1 && GAME_STATE.plyr2);
-}
-
-function gameIsOn() {
-  return GAME_STATE.game.outcome === GAMEPLAY_STATES.playing
-}
-
-function verifyMoveId(id, token) {
-  return (
-    (id === GAME_STATE.plyr1 && token === GAME_STATE.p1Token) || 
-    (id === GAME_STATE.plyr2 && token === GAME_STATE.p2Token)
-  )
-}
-
-
-function switchTurn(playerTurn) {
-  // note: Absorbed from FE
-  const newPlayer = switchTurnTo[playerTurn];
-  if (!newPlayer) {
-      console.log (`error switching turns - invalid player ${GAME_STATE.game.playerTurn}`);
-      return;
+  leaveGame(socketId) {
+    console.log("leaving game");
+    let { plyr1, plyr2 } = this.game_state;
+  
+    if (plyr1 === socketId){
+      this.game_state.plyr1 = null;
+      this.deRegisterGameOfPlyr(socketId);
+      return true;
+  
+    } else if (plyr2 === socketId){
+      this.game_state.plyr2 = null;
+      this.deRegisterGameOfPlyr(socketId);
+      return true;
+    }
+    return false; 
   } 
-  return newPlayer;
+
+  newGame(restart=false) {
+    // Assumes that plyr1 & plyr2 have been declared. 
+    if (!this.playersReady()){
+      console.log("ERROR - new game attempted but 2 players not ready");
+      return;
+    }
+    console.log(`NEW GAME init in room ${this.game_code}`);
+    this.game_state.game.numMoves = 0; 
+  
+    this.game_state.game.board = makeBoard(BOARD_SIZE);
+  
+    let token = this.selectStarter(restart);
+    this.game_state.game.playerTurn = token;
+    this.game_state.starter = token;
+    this.game_state.game.outcome = GAMEPLAY_STATES.playing;
+    this.game_state.game.winner = null;
+  }
+
+  selectStarter(restart) {
+    let token; 
+    if (restart) {
+      token = switchTurnTo[this.game_state.starter]
+
+    } else {
+      token = this.game_state.p1Token;
+    }
+    return token;
+  }
+
+  playersReady() {
+    return Boolean(this.game_state.plyr1 && this.game_state.plyr2);
+  }
+
+  verifyMoveId(id, token) {
+    return (
+      (id === this.game_state.plyr1 && token === this.game_state.p1Token) || 
+      (id === this.game_state.plyr2 && token === this.game_state.p2Token)
+    )
+  }
+
+  gameIsOn() {
+    return this.game_state.game.outcome === GAMEPLAY_STATES.playing
+  }  
+
+  updateServerGame(game) {
+    this.game_state.game.board = game.board; // TODO - check that new board is obtainable by a single legal move.
+    this.game_state.game.playerTurn = this.switchTurn(this.game_state.game.playerTurn);
+  
+    /* TODO verify game outcomes on server */
+    this.game_state.game.outcome = game.outcome;
+    this.game_state.game.winner = game.winner;
+    
+  
+    this.game_state.game.numMoves += 1; // How to do on restart
+  
+  }
+  
+  switchTurn(playerTurn) {
+    // pure function
+
+    const newPlayer = switchTurnTo[playerTurn];
+    if (!newPlayer) {
+        console.log (`error switching turns - invalid player ${GAME_STATE.game.playerTurn}`);
+        return;
+    } 
+    return newPlayer;
+  }
 }
 
+/* -- Utilties -- */
 function makeBoard(size) {
   // note: Absorbed from FE
   let board = [];
@@ -166,23 +239,6 @@ function makeBoard(size) {
       }
   }
   return board;
-}
-
-// fns for multiple games 
-
-async function validateSocketId(socketId) { 
-  const ids = await io.allSockets();
-  console.log(`ids: `, ids);
-  return ids.has(socketId);
-}
-
-function verifyRoomCode(room) {
-  // return number of connections in a given room or null if it doesn't exist. 
-  const clients = io.sockets.adapter.rooms.get(room);
-  const numClients = clients ? clients.size : 0;
-  const roomExists = ACTIVE_GAMES.has(room);
-
-  return { numClients, roomExists };
 }
 
 /* -- Socket Controller --
@@ -209,7 +265,7 @@ io.on('connection', (socket) => {
       // create or join room 
       socket.join(room)
       console.log('room joined!', room);
-      io.to(room).emit('joinedRoom', { numClients , roomCode: room })
+      io.to(room).emit('joinedRoom', { numClients: numClients + 1 , roomCode: room })
 
     } else if (!roomExists) {
       // fail bc wrong room number. 
@@ -222,37 +278,46 @@ io.on('connection', (socket) => {
     }
   })
 
-  socket.on('startGame', () => {
+  socket.on('startGame', ({ room }) => {
 
-    let token = joinGame(socket.id);
+    let game = getGame(room);
+
+    let token = game.joinGame(socket.id);
 
     if (token) {
-      io.to(socket.id).emit('youJoined', {id: socket.id, token });
-      socket.join('game');
+      if (verifyConnectionToRoom(room, socket.id)) {
+        io.to(socket.id).emit('youJoined', {id: socket.id, token });
+      } else {
+        console.log(`error in startGame - not connected to room given by client. Room: ${room}`);
+        console.log("Active Rooms", ACTIVE_GAMES);
+      }
 
     } else {
       io.to(socket.id).emit('gameFull', {id: socket.id});
     }
 
-    let ready = playersReady();
+    let ready = game.playersReady();
     if (ready) {
-      newGame(GAME_STATE.plyr1, GAME_STATE.plyr2);
+      game.newGame();
     }
     console.log(`game ready: ${ready}`);
-    io.to('game').emit('startGame', { playersReady: ready })
+    console.log(game.game_code, game.game_state);
+    io.to(room).emit('startedGame', { playersReady: ready })
   })
 
-  socket.on('playMove', ({id, token, game}) => {
-    console.log("move played");
+  socket.on('playMove', ({id, token, game, room}) => {
+    console.log(`move played in room ${room}`);
+    let gameObj = getGame(room);
     // console.log({id, token, game});
-    let validId = verifyMoveId(id, token);
+    let validId = gameObj.verifyMoveId(id, token);
+    let gameIsOn = gameObj.gameIsOn();
 
-    if (validId && gameIsOn()) {
-      updateServerGame(game)
+    if (validId && gameIsOn) {
+      gameObj.updateServerGame(game)
 
-      let { numMoves } = GAME_STATE.game;
-      let serverGame = GAME_STATE.game;
-      io.to('game').emit('newMove', { serverGame, numMoves, mover_id: id });
+      let { numMoves } = gameObj.game_state.game;
+      let serverGame = gameObj.game_state.game;
+      io.to(room).emit('newMove', { serverGame , numMoves, mover_id: id });
     } else {
       // TODO error handling? 
       console.log('player ID and token invalid');
@@ -260,16 +325,18 @@ io.on('connection', (socket) => {
 
   })
 
-  socket.on('restartGame', ({ id, token }) => {
+  socket.on('restartGame', ({ id, token, room }) => {
     console.log("game restart");
 
-    
-    let validId = verifyMoveId(id, token);
-    if (validId) {
-      newGame(GAME_STATE.plyr1, GAME_STATE.plyr2, true);
+    let game = getGame(room)
 
-      let serverGame = GAME_STATE.game;
-      io.to('game').emit('restartGame', { serverGame });
+    
+    let validId = game.verifyMoveId(id, token);
+    if (validId) {
+      game.newGame(true);
+
+      let serverGame = game.game_state.game;
+      io.to(room).emit('restartGame', { serverGame });
     } else {
       // TODO error handling? 
       console.log('player ID and token invalid');
@@ -279,9 +346,21 @@ io.on('connection', (socket) => {
     
   
   socket.on('disconnect', () => {
-
-    if (leaveGame(socket.id)) {
-      io.to('game').emit('leftGame', {id: socket.id })
+    let game = getGameBySocketId(socket.id);
+    if (game) {
+      let room = game.game_code;
+      let { numClients, roomExists} = verifyRoomCode(room);
+      
+      if (roomExists && game.leaveGame(socket.id)) {
+        io.to(room).emit('leftGame', {id: socket.id })
+  
+        if(numClients == 0) {
+          removeRoom(room);
+        }
+      } else {
+  
+        console.log(`error leaving game. Socket ${socket.id} not found as player in room ${room}`);
+      }
     }
 
     console.log('A user has disconnected');
@@ -313,8 +392,8 @@ function generateGameCode() {
 function generateUniqueGameCode(collisionCount=0) {
   let code = generateGameCode();
 
-  if (ACTIVE_GAMES.has(code)) {
-    console.log(`code collision:${code}, \n ACTIVE_GAMES: ${ACTIVE_GAMES}`)
+  if (gameExists(code)) {
+    console.log(`code collision:${code}, \n ACTIVE_GAMES: ${Object.keys(ACTIVE_GAMES)}`)
     code = generateUniqueGameCode(collisionCount + 1)
   } else {
     return code
@@ -327,7 +406,8 @@ app.post(`${apiRoute}/tic-tac-toe/game`, (req, res) => {
   // Generate valid 4 char code and send to user. 
   let code = generateUniqueGameCode()
 
-  ACTIVE_GAMES.add(code);
+  //Create new GAME store
+  createRoom(code)
 
   console.log('new game created, ACTIVE_GAMES: \n', ACTIVE_GAMES);
   res.json({ code })
@@ -338,7 +418,6 @@ app.post(`${apiRoute}/tic-tac-toe/game/join`, (req, res) => {
   /* verifies room exists and has 1 or 0 ppl in it 
     Then join 
     If has 2 ppl, fail. 
-    
   */
   let code = req.body.code;
   console.log(`code sent: ${code}`);
@@ -359,9 +438,6 @@ app.post(`${apiRoute}/tic-tac-toe/game/join`, (req, res) => {
       // console.log('num clients: ', numClients);
 
     }
-
-  res.json({ code })
-
 })
 
 
