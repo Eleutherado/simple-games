@@ -35,7 +35,9 @@
         numMoves: 0,
         outcome: null, // will be set to one of the GAMEPLAY_STATES.
         winner: null, // will be set to PlayerX or PlayerO if there is a winner. 
+        
         //view data
+        gameStarted: false,
         mouseX: 0, 
         mouseY: 0, 
         margin: null,
@@ -90,6 +92,8 @@
     let connectingMsg = document.getElementById('connectingMsg');
     let tokenDisplay = document.getElementById('tokenDisplay');
     let plyrDisconnectMsg = document.getElementById('playerDisconnectMsg');
+    let gameReadyMsg = document.getElementById('gameReadyMsg');
+    let clickStartMsg = document.getElementById('clickStartMsg');
     let gameCodeDisplay = document.getElementById('codeDisplay');
 
     let gameCode = localStorage.getItem('gameCode');
@@ -104,14 +108,27 @@
         //successfully joined an existing room on server. 
         localState.gameCode = roomCode;
         console.log("joined room, num clients: ", numClients, "code: ", localState.gameCode );
+        
         displayGameCode();
+        if (numClients == 2) {
+            // Display match is ready to begin. 
+            hideShareCodeMsg();
+            displayGameReadyMsg();
+            hideDisconnectMsg();
+            if(!game.gameStarted){
+                displayClickStartMsg();
+            }
+        }
     })
 
 
     startBtn.addEventListener('click', () => {
         socket.emit('startGame', { room: localState.gameCode });
+        startLocalGame()
         hideStartBtn();
         displayConnectingMsg();
+        hideGameReadyMsg();
+        hideClickStartMsg();
     });
 
 
@@ -192,6 +209,10 @@
    const hideConnectingMsg = () => connectingMsg.style.display = 'none';
    const displayDiconnectMsg = () => plyrDisconnectMsg.style.display = 'inline'; 
    const hideDisconnectMsg = () => plyrDisconnectMsg.style.display = 'none'; 
+   const displayGameReadyMsg = () => gameReadyMsg.style.display = 'inline';
+   const hideGameReadyMsg = () => gameReadyMsg.style.display = 'none';
+   const displayClickStartMsg = () => clickStartMsg.style.display = 'inline';
+   const hideClickStartMsg = () => clickStartMsg.style.display = 'none';
    
    function displayGameCode() {
        let textNodes = gameCodeDisplay.childNodes;
@@ -206,6 +227,7 @@
    function hideStartBtn() {
        document.getElementById("startBtnBlock").style.display = 'none';
    }
+   
    function displayGameFullMsg() {
        document.getElementById("gameFullMsg").style.display = 'inline';
        hideConnectingMsg();
@@ -218,6 +240,11 @@
 
    function displayWaitingMsg () {
     document.getElementById("waitingMsg").style.display = 'inline';
+   }
+
+   function hideShareCodeMsg() {
+    console.log("hide share code");
+    document.getElementById("shareCodeMsg").style.display = 'none';
    }
 
    function displayGame() {
@@ -393,6 +420,9 @@
     DESIRABLE - refactor mutating functions so that same inputs produce same effect.
     */ 
 
+    function startLocalGame() {
+        game.gameStarted = true;
+    }
 
     function updateMouse(mouseX, mouseY) { 
         game.mouseX = mouseX;
@@ -508,6 +538,8 @@
 
     function handlePlayerDisconnect() {
         displayDiconnectMsg();
+        hideGameReadyMsg();
+        hideClickStartMsg();
         endGame(GAMEPLAY_STATES.disconnected, null);
         redraw(game);
     }
@@ -518,9 +550,12 @@
             displayGame();
             restartGame();
             hideDisconnectMsg();
+            hideGameReadyMsg();
         } else {
-            displayWaitingMsg();
             hideConnectingMsg();
+            if(game.gameStarted) {
+                displayWaitingMsg();
+            }
         }
     }
 
