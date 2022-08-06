@@ -18,6 +18,10 @@ app.use(bodyParser.json());
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: true }));
 
+const ERRORS = {
+  roomNotFound: "roomNotFound",
+  roomFull: "roomFull"
+}
 
 
 const BOARD_SIZE = 3;
@@ -428,12 +432,18 @@ app.post(`${apiRoute}/tic-tac-toe/game/join`, (req, res) => {
       res.json({ code })
 
     } else if (!roomExists) {
-      res.json(`Error - room ${code} does not exist`);
+      res.json({
+        error: `Error ${ERRORS.roomNotFound} - room ${code} does not exist`, 
+        errorType: ERRORS.roomNotFound 
+      });
       // console.log('wrong room number - ', room);
 
     } else {
       // fail bc of numClients
-      res.json(`Error - this room is already full with ${numClients} connections`);
+      res.json({ 
+        error: `Error ${ERRORS.roomFull} - this room is already full with ${numClients} connections`, 
+        errorType: ERRORS.roomFull
+      });
       // throw new Error(`Error - this room is already full with ${numClients} connections`);
       // console.log('num clients: ', numClients);
 

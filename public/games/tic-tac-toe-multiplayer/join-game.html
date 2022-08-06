@@ -43,7 +43,7 @@
         class="mt-1 block px-3 py-2 bg-white border border-emerald-300 
         rounded-md text-sm shadow-sm placeholder-slate-400
         focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"/>
-        <p id="valError" class="text-red-600"></p>
+        <p id="valError" class="text-pink-600"></p>
         <button id="submitBtn" class="bg-emerald-500 px-10 py-5 mt-5 rounded-lg hover:shadow-2xl hover:brightness-150">Send</button>
       </div>
     </div>
@@ -81,13 +81,67 @@
       const API_URL = 'http://localhost:3000/api'
       const APP_URL = 'http://localhost:3000'
       let submitBtn = document.getElementById('submitBtn');
-      submitBtn.addEventListener('click', handleNewGameClick);
+      submitBtn.addEventListener('click', handleSubmitClick);
 
       localStorage.removeItem('gameCode');
 
-      async function handleNewGameClick(e) {
+      function validateCodeFormat(input) {
+        let alphaNumRegex = /^[0-9a-zA-Z]+$/;
+
+        if (!input.match(alphaNumRegex)){
+          return false
+        }
+        if (input.length != 4) {
+          return false 
+        }
+        return true;
+      }
+
+      function displayError(message) {
+        const input = document.getElementById("codeInput");
+        input.classList.add("border-pink-500", "text-pink-500");
+
+        const errorEl = document.getElementById("valError");
+        errorEl.innerText = message;
+
+      }
+
+      function hideError(){
+        console.log("hiding error");
+        const input = document.getElementById("codeInput");
+        input.classList.remove("border-pink-500", "text-pink-500");
+
+        const errorEl = document.getElementById("valError");
+        errorEl.innerText = "";
+
+      }
+
+      function displayInputFormatError() {
+        //todo - border & error. 
+        const message = "The code must be numbers or letters only and 4 characters long"
+        
+        displayError(message);
+        
+      }
+
+      function handleCodeServerError(error) {
+        //todo - display server errors - roomFull and roomNotFound
+        displayError(error);
+      }
+
+      
+
+      async function handleSubmitClick(e) {
         let codeInput = document.getElementById("codeInput").value;
         let input = { code : codeInput };
+
+        let valid = validateCodeFormat(codeInput);
+        console.log("valid", valid);
+        if (!valid) {
+          displayInputFormatError();
+          return;
+        }
+        hideError();
         
         // If successful then put code in local storage and send to game
         try {
@@ -97,15 +151,15 @@
             headers: {'Content-Type': 'application/json'}
           });
 
-          console.log(joinGameResponse);
-
           let result = await joinGameResponse.json();
           console.log(result);
           if (result.code) {
             console.log("received code: ", result.code)
             localStorage.setItem('gameCode', result.code) // TODO - handle removal of the game code. 
             window.location.href = `${APP_URL}/games/tic-tac-toe-multiplayer/tic-tac-toe-multi.html`;
-          } else {
+          } else if (result.error) {
+            handleCodeServerError(result.error);
+
             console.log("error, missing game code from server response", joinGameResponse);
           }
 
