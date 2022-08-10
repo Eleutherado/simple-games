@@ -6,6 +6,7 @@ const { Server } = require('socket.io');
 const { emit } = require('process');
 const { GAMEPLAY_STATES, switchTurnTo } = require('../public/const');
 const { json } = require('express/lib/response');
+const cors = require('cors');
 
 const publicPath = path.join(__dirname, '/../public');
 const port = process.env.PORT || 3000;
@@ -17,6 +18,11 @@ let io = new Server(server);
 app.use(bodyParser.json());
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: true }));
+
+//set up allowed origins on cors. 
+app.use(cors({
+  origin: 'https://www.eleutheradoplays.com'
+}));
 
 const ERRORS = {
   roomNotFound: "roomNotFound",
