@@ -65,21 +65,14 @@
       </div>
     </div>
 
-    <script>
-      /*
-        TODO On submit add validation, 
-          should be exactly 4 chars long. 
-          Can only be alphanumeric, nothing else. 
-        TODO If invalid - add red border to input box. 
-        If valid, send to Backend. 
-        DONE - ** in backend - validate submission & if valid try to match to room. 
-        DONE - Backend can respond with room match or no match. 
-        If not match then display 'no games match the entered code'
-        DONE - If match --> send to multi as new player!
-      */
-     
-      const API_URL = 'http://localhost:3000/api'
-      const APP_URL = 'http://localhost:3000'
+    <script>  
+      // dev
+      // const API_URL = 'http://localhost:3000/api'
+      // const APP_URL = 'http://localhost:3000'
+
+      // prod
+      const API_URL = 'http://eleutheradoplays.com/api'
+      const APP_URL = 'http://eleutheradoplays.com'
       let submitBtn = document.getElementById('submitBtn');
       submitBtn.addEventListener('click', handleSubmitClick);
 
