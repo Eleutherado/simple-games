@@ -20,9 +20,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 //set up allowed origins on cors. 
-app.use(cors({
-  origin: 'https://www.eleutheradoplays.com'
-}));
+app.use(cors());
 
 const ERRORS = {
   roomNotFound: "roomNotFound",
